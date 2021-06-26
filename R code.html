@@ -1,0 +1,950 @@
+<html><head><style>body {
+   color: black;
+}
+</style></head><body><hr>
+<p>title: &quot;Final Project- STAT 425. COVID-19 Healthy Diet and Recovery Rate&quot;
+output: html_document
+author: &quot;Sandip Sonawane (sandip2@illinois.edu), Nursultan Bailessov (nb17@illinois.edu)&quot;
+date: &quot;May 30, 2021&quot;
+output:
+  html_document: 
+    theme: default
+    toc: yes</p>
+<hr>
+<p>```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)</p>
+<pre><code>
+## Praparing training <span class="hljs-keyword">and</span> testing data <span class="hljs-keyword">for</span> Linear <span class="hljs-keyword">Model</span>
+```{r}
+#Preparing the training <span class="hljs-keyword">and</span> testing data
+df &lt;- read.csv(<span class="hljs-string">"Food_Supply_kcal_Data.csv"</span>, header = TRUE)
+df = data.frame(df)
+rownames(df) &lt;- df<span class="hljs-symbol">$</span>Country
+df<span class="hljs-symbol">$</span>Country = NULL
+df<span class="hljs-symbol">$</span>Population = NULL
+df<span class="hljs-symbol">$</span>Deaths = NULL
+df<span class="hljs-symbol">$</span>Confirmed = NULL
+df<span class="hljs-symbol">$</span>Active = NULL
+df<span class="hljs-symbol">$</span>Undernourished = NULL
+<span class="hljs-function"><span class="hljs-title">df</span><span class="hljs-symbol">$</span></span>Unit..<span class="hljs-keyword">all</span>.except.Population. = NULL
+
+df = df[-c(<span class="hljs-number">53</span>,<span class="hljs-number">81</span>,<span class="hljs-number">82</span>,<span class="hljs-number">106</span>,<span class="hljs-number">110</span>,<span class="hljs-number">156</span>),]
+<span class="hljs-keyword">set</span>.seed(100)
+dt <span class="hljs-comment">= sort(sample(nrow(df), nrow(df)*.8))</span>
+traindata <span class="hljs-comment">&lt;- df[dt,]</span>
+testdata <span class="hljs-comment">&lt;- df[-dt,]</span>
+</code></pre><h2 id="performing-linear-regression">Performing linear regression</h2>
+<pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">library</span><span class="hljs-params">(car)</span></span>
+<span class="hljs-function"><span class="hljs-title">library</span><span class="hljs-params">(MASS)</span></span>
+<span class="hljs-function"><span class="hljs-title">library</span><span class="hljs-params">(lmtest)</span></span>
+<span class="hljs-function"><span class="hljs-title">library</span><span class="hljs-params">(sandwich)</span></span>
+
+traindataLM = traindata
+traindataLM<span class="hljs-variable">$Animal</span><span class="hljs-selector-class">.Products</span> = NULL
+traindataLM<span class="hljs-variable">$Vegetal</span><span class="hljs-selector-class">.Products</span> = NULL
+
+traindataLM<span class="hljs-variable">$Aquatic</span><span class="hljs-selector-class">.Products</span>.<span class="hljs-selector-class">.Other</span> = NULL
+traindataLM<span class="hljs-variable">$Fish</span>.<span class="hljs-selector-class">.Seafood</span> = NULL
+traindataLM<span class="hljs-variable">$Miscellaneous</span> = NULL
+traindataLM<span class="hljs-variable">$Fruits</span>..<span class="hljs-selector-class">.Excluding</span><span class="hljs-selector-class">.Wine</span> = NULL
+traindataLM<span class="hljs-variable">$Spices</span> = NULL
+traindataLM<span class="hljs-variable">$Sugar</span><span class="hljs-selector-class">.Crops</span> = NULL
+
+lin_reg1 = lm(Recovered ~ ., data = traindataLM)
+<span class="hljs-function"><span class="hljs-title">vif</span><span class="hljs-params">(lin_reg1)</span></span>
+traindataLM<span class="hljs-variable">$Cereals</span>..<span class="hljs-selector-class">.Excluding</span><span class="hljs-selector-class">.Beer</span> = NULL
+
+lin_reg2 = lm(Recovered ~ ., data = traindataLM)
+<span class="hljs-function"><span class="hljs-title">vif</span><span class="hljs-params">(lin_reg2)</span></span>
+<span class="hljs-function"><span class="hljs-title">summary</span><span class="hljs-params">(lin_reg2)</span></span>
+
+<span class="hljs-selector-id">#Linear</span> regression diagnostics
+<span class="hljs-function"><span class="hljs-title">par</span><span class="hljs-params">(mfrow=c(<span class="hljs-number">2</span>,<span class="hljs-number">2</span>)</span></span>)
+<span class="hljs-function"><span class="hljs-title">plot</span><span class="hljs-params">(lin_reg2)</span></span>
+shapiro.test(lin_reg2<span class="hljs-variable">$res</span>)
+
+lin_reg3 = lm((Recovered + <span class="hljs-number">1</span>) ~ ., data=traindataLM)
+<span class="hljs-function"><span class="hljs-title">boxcox</span><span class="hljs-params">(lin_reg3)</span></span>
+
+lin_reg4 = lm(<span class="hljs-number">1</span>/(Recovered + <span class="hljs-number">1</span>) ~ ., data=traindataLM)
+<span class="hljs-function"><span class="hljs-title">summary</span><span class="hljs-params">(lin_reg4)</span></span>
+<span class="hljs-function"><span class="hljs-title">par</span><span class="hljs-params">(mfrow=c(<span class="hljs-number">2</span>,<span class="hljs-number">2</span>)</span></span>)
+<span class="hljs-function"><span class="hljs-title">plot</span><span class="hljs-params">(lin_reg4)</span></span>
+shapiro.test(lin_reg4<span class="hljs-variable">$res</span>)
+<span class="hljs-function"><span class="hljs-title">bptest</span><span class="hljs-params">(lin_reg4)</span></span>
+
+<span class="hljs-selector-id">#we</span> have heteroskedasticity that means that our ordinary least square estimators are no longer the best and standard errors could be misleading, so we use robust standard errors
+<span class="hljs-selector-id">#we</span> have sufficiently large sample size, so we expect that the results of OLS are precise enough
+<span class="hljs-function"><span class="hljs-title">coeftest</span><span class="hljs-params">(lin_reg4, vcov = vcovHC(lin_reg4, <span class="hljs-string">"HC1"</span>)</span></span>)
+<span class="hljs-selector-id">#there</span> is no big difference <span class="hljs-keyword">in</span> significance of variables after using robust standard errors, as expected, so we can use usual standard errors
+
+rmse &lt;- function(x,y) sqrt(mean((x-y)^<span class="hljs-number">2</span>))
+RMSEtrain = sqrt(mean(lin_reg4<span class="hljs-variable">$res</span>**<span class="hljs-number">2</span>))
+RMSEtrain
+RMSEtest = rmse(<span class="hljs-number">1</span>/(testdata<span class="hljs-variable">$Recovered</span> + <span class="hljs-number">1</span>), predict(lin_reg4, testdata))
+RMSEtest
+</code></pre>
+<h2 id="performing-linear-regression-with-variables-selected-using-bic-by-using-stepwise-elimination">Performing linear regression with variables selected using BIC by using stepwise elimination</h2>
+<pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">library</span><span class="hljs-params">(leaps)</span></span>
+n = dim(traindata)[<span class="hljs-number">1</span>]
+msize = <span class="hljs-number">2</span>:<span class="hljs-number">16</span>
+BICreg1 = regsubsets(<span class="hljs-number">1</span>/(Recovered + <span class="hljs-number">1</span>) ~ ., data =traindataLM, nvmax = <span class="hljs-number">15</span>)
+rs = summary(BICreg1)
+rs<span class="hljs-variable">$which</span>
+BIC &lt;- n*log(rs<span class="hljs-variable">$rss</span>/n) + msize*log(n)
+<span class="hljs-function"><span class="hljs-title">plot</span><span class="hljs-params">(msize, BIC, xlab = <span class="hljs-string">"No. of Parameters"</span>, ylab = <span class="hljs-string">"BIC"</span>)</span></span>
+which.min(BIC) + <span class="hljs-number">1</span>
+
+BICreg2 = lm(<span class="hljs-number">1</span>/(Recovered +  <span class="hljs-number">1</span>) ~ Oilcrops + Stimulants + Obesity, data = traindataLM)
+<span class="hljs-function"><span class="hljs-title">summary</span><span class="hljs-params">(BICreg2)</span></span>
+RMSEtrain = sqrt(mean(BICreg2<span class="hljs-variable">$res</span>**<span class="hljs-number">2</span>))
+RMSEtrain
+RMSEtest = rmse(<span class="hljs-number">1</span>/(testdata<span class="hljs-variable">$Recovered</span> + <span class="hljs-number">1</span>), predict(BICreg2, testdata))
+RMSEtest
+</code></pre>
+<h2 id="performing-linear-regression-with-variables-selected-using-aic-by-using-stepwise-elimination">Performing linear regression with variables selected using AIC by using stepwise elimination</h2>
+<pre><code class="lang-{r}">g &lt;- lm(<span class="hljs-number">1</span>/(<span class="hljs-name">Recovered</span> + <span class="hljs-number">1</span>) ~ ., data = traindataLM)
+step(<span class="hljs-name">g</span>)
+AICreg = lm(<span class="hljs-number">1</span>/(<span class="hljs-name">Recovered</span> + <span class="hljs-number">1</span>) ~ Animal.fats + Eggs + Meat + Oilcrops + Stimulants + Obesity, data = traindataLM)
+summary(<span class="hljs-name">AICreg</span>)
+RMSEtrain = sqrt(<span class="hljs-name">mean</span>(<span class="hljs-name">AICreg</span>$res**2))
+RMSEtrain
+RMSEtest = rmse(<span class="hljs-number">1</span>/(<span class="hljs-name">testdata</span>$Recovered + <span class="hljs-number">1</span>), predict(<span class="hljs-name">AICreg</span>, testdata))
+RMSEtest
+</code></pre>
+<h2 id="performing-lasso-regression">Performing Lasso regression</h2>
+<pre><code class="lang-{r}">#Performing Lasso regression
+library(lars)
+
+trainx &lt;- model.<span class="hljs-built_in">matrix</span>( ~ . - 1, data = traindataLM[, !(names(traindataLM) %<span class="hljs-keyword">in</span>% c(<span class="hljs-string">"Recovered"</span>))])
+traindataLM2 = traindataLM[-115, ]
+trainy &lt;- <span class="hljs-keyword">as</span>.vector(1/(traindataLM2<span class="hljs-variable">$Recovered</span> + 1))
+
+testx = model.<span class="hljs-built_in">matrix</span>( ~ . -1, data = testdata[, !(names(testdata) %<span class="hljs-keyword">in</span>% c(<span class="hljs-string">"Recovered"</span>, <span class="hljs-string">"Animal.Products"</span>, <span class="hljs-string">"Vegetal.Products"</span>, <span class="hljs-string">"Aquatic.Products..Other"</span>, <span class="hljs-string">"Fish..Seafood"</span>, <span class="hljs-string">"Miscellaneous"</span>, <span class="hljs-string">"Fruits...Excluding.Wine"</span>, <span class="hljs-string">"Spices"</span>, <span class="hljs-string">"Sugar.Crops"</span>, <span class="hljs-string">"Cereals...Excluding.Beer"</span>))])
+testy = <span class="hljs-keyword">as</span>.vector(1/(testdata<span class="hljs-variable">$Recovered</span> + 1))
+
+lassoReg &lt;- lars(trainx, trainy)
+<span class="hljs-keyword">set</span>.seed(100)
+cvml &lt;- cv.lars(trainx, trainy)
+svm &lt;- cvml<span class="hljs-variable">$index</span>[<span class="hljs-keyword">which</span>.<span class="hljs-built_in">min</span>(cvml<span class="hljs-variable">$cv</span>)]
+svm
+
+TRpredlasso &lt;- <span class="hljs-keyword">predict</span>(lassoReg, trainx, s=svm, mode = <span class="hljs-string">"fraction"</span>)
+
+predlasso &lt;- <span class="hljs-keyword">predict</span>(lassoReg, testx, s=svm, mode = <span class="hljs-string">"fraction"</span>)
+<span class="hljs-built_in">round</span>(<span class="hljs-keyword">predict</span>(lassoReg, s=svm, <span class="hljs-keyword">type</span> = <span class="hljs-string">"coef"</span>, mode = <span class="hljs-string">"fraction"</span>)<span class="hljs-variable">$coef</span>, 3)
+predlasso<span class="hljs-variable">$fit</span>
+
+RMSEtrain = rmse(trainy, TRpredlasso<span class="hljs-variable">$fit</span>)
+RMSEtrain
+RMSEtest = rmse(1/(testdata<span class="hljs-variable">$Recovered</span> + 1), predlasso<span class="hljs-variable">$fit</span>)
+RMSEtest
+</code></pre>
+<h2 id="performing-principal-components-regression">Performing Principal Components Regression</h2>
+<pre><code class="lang-{r}">library(pls)
+<span class="hljs-keyword">set</span>.seed(100)
+modpcrcv = pcr(1/(Recovered + 1) ~ ., data=traindata, validation=<span class="hljs-string">"CV"</span>, ncomp=22)
+pcrCV = RMSEP(modpcrcv, estimate=<span class="hljs-string">"CV"</span>)
+<span class="hljs-keyword">plot</span>(pcrCV, col = 'blue')
+<span class="hljs-keyword">which</span>.<span class="hljs-built_in">min</span>(pcrCV<span class="hljs-variable">$val</span>) - 1
+
+RMSEtrain = <span class="hljs-built_in">sqrt</span>(<span class="hljs-keyword">mean</span>(modpcrcv<span class="hljs-variable">$res</span>**2))
+RMSEtrain
+RMSEtest = rmse(1/(testdata<span class="hljs-variable">$Recovered</span> + 1), <span class="hljs-keyword">predict</span>(modpcrcv, testdata, ncomp = 22))
+RMSEtest
+</code></pre>
+<h2 id="using-non-parametric-regression-models">Using Non-Parametric Regression Models</h2>
+<pre><code class="lang-{r}"># Import Libraries
+library(<span class="hljs-name">corrplot</span>)
+library(<span class="hljs-name">readr</span>)
+library(<span class="hljs-name">ggplot2</span>)
+library(<span class="hljs-name">caret</span>)
+library(<span class="hljs-name">MLmetrics</span>)
+library(<span class="hljs-name">xgboost</span>)
+library(<span class="hljs-name">readr</span>)
+library(<span class="hljs-name">stringr</span>)
+library(<span class="hljs-name">caret</span>)
+library(<span class="hljs-name">car</span>)
+library(<span class="hljs-name">dplyr</span>)
+</code></pre>
+<pre><code class="lang-{r}"># <span class="hljs-keyword">import</span> data
+df &lt;- <span class="hljs-keyword">read</span>.csv(<span class="hljs-keyword">file</span> = <span class="hljs-string">'Food_Supply_kcal_Data.csv'</span>, header = <span class="hljs-keyword">TRUE</span>)
+df = data.frame(df)
+head(df, <span class="hljs-number">3</span>)
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">names</span><span class="hljs-params">(df)</span></span>
+</code></pre>
+<p>Since last column is just a % unit, we can drop it.</p>
+<pre><code class="lang-{r}">df = select(df, -Unit.<span class="hljs-selector-class">.all</span><span class="hljs-selector-class">.except</span><span class="hljs-selector-class">.Population</span>.)
+</code></pre>
+<ul>
+<li>There are 6 row items which have value NA for columns confirmed, deaths, recovered, and active, lets remove these rows since data from these countries is absent.</li>
+</ul>
+<pre><code class="lang-{r}">df = df[-c(<span class="hljs-number">53</span>,<span class="hljs-number">81</span>,<span class="hljs-number">82</span>, <span class="hljs-number">106</span>, <span class="hljs-number">110</span>, <span class="hljs-number">156</span>),]
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-keyword">new</span><span class="hljs-type">_df</span> = select(df, Confirmed, Recovered, Active, Deaths)
+cor(<span class="hljs-keyword">new</span><span class="hljs-type">_df</span>, use = <span class="hljs-string">"na.or.complete"</span>)
+</code></pre>
+<ul>
+<li>Confirmed, Deaths, Recovered, and Active are predictions. Deaths will be highly correlated with Confirmed, Recovered, and Active, so we will not consider them as predictors. Instead, along with Deaths, a new variable recovery rate can be a good prediction.</li>
+</ul>
+<p>$ Recovery Rate = \frac{Recoverd}{Confirmed-Active}$</p>
+<pre><code class="lang-{r}"># df<span class="hljs-symbol">$</span>RecoverRate = df<span class="hljs-symbol">$</span>Recovered/(df<span class="hljs-symbol">$</span>Confirmed)
+# df = df[!is.<span class="hljs-literal">na</span>(df<span class="hljs-symbol">$</span>RecoverRate),]
+df = df[!is.<span class="hljs-literal">na</span>(df<span class="hljs-symbol">$</span>Obesity),]
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-class"><span class="hljs-keyword">data</span> = round(<span class="hljs-title">cor</span>(<span class="hljs-title">select</span>(<span class="hljs-title">df</span>, <span class="hljs-title">c</span>(-<span class="hljs-type">Country</span>, -<span class="hljs-type">Undernourished</span>, -<span class="hljs-type">Population</span>, -<span class="hljs-type">Active</span>,
+                              -<span class="hljs-type">Confirmed</span>, -<span class="hljs-type">Deaths</span>)),</span>
+                 use = <span class="hljs-string">"na.or.complete"</span>), <span class="hljs-number">2</span>)
+</code></pre>
+<pre><code class="lang-{r}">library(<span class="hljs-name">reshape2</span>)
+melted_df &lt;- melt(<span class="hljs-name">data</span>)
+head(<span class="hljs-name">melted_df</span>)
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">library</span><span class="hljs-params">(corrplot)</span></span>
+residuals &lt;- cor.mtest(data, conf<span class="hljs-selector-class">.level</span> = .<span class="hljs-number">95</span>)
+
+<span class="hljs-function"><span class="hljs-title">options</span><span class="hljs-params">(repr.plot.width=<span class="hljs-number">11</span>, repr.plot.height=<span class="hljs-number">10</span>)</span></span>
+corrplot(data, <span class="hljs-attribute">order</span> = <span class="hljs-string">"hclust"</span>, type = <span class="hljs-string">'upper'</span>,
+         tl<span class="hljs-selector-class">.col</span> = <span class="hljs-string">"slategray"</span>, tl<span class="hljs-selector-class">.srt</span> = <span class="hljs-number">45</span>, tl<span class="hljs-selector-class">.cex</span> = <span class="hljs-number">0.75</span>, <span class="hljs-selector-tag">p</span><span class="hljs-selector-class">.mat</span> = residuals<span class="hljs-variable">$p</span>, sig<span class="hljs-selector-class">.level</span> = .<span class="hljs-number">01</span>)
+</code></pre>
+<ul>
+<li>We can see some patterns coming out of the correlation matrix</li>
+<li>Vegetal Products and Animal Products (Milk, Meat, Eggs, Animal Fats) have strong negative correlation</li>
+</ul>
+<h3 id="drop-variables-that-do-not-have-direct-relationship-with-recovery-rate-">Drop variables that do not have direct relationship with recovery rate.</h3>
+<pre><code class="lang-{r}">data_new = round(cor(select(df, c(-Sugar<span class="hljs-selector-class">.Crops</span>, -Fruits..<span class="hljs-selector-class">.Excluding</span><span class="hljs-selector-class">.Wine</span>, -Vegetables, - Aquatic<span class="hljs-selector-class">.Products</span>.<span class="hljs-selector-class">.Other</span>,
+                              - Fish.<span class="hljs-selector-class">.Seafood</span>, -Offals, -Country, -Undernourished, -Population, - Active,-Confirmed, -Deaths, -Spices,
+                                 -Sugar<span class="hljs-selector-class">.Crops</span>, -Fruits..<span class="hljs-selector-class">.Excluding</span><span class="hljs-selector-class">.Wine</span>)),
+                 use = <span class="hljs-string">"na.or.complete"</span>), <span class="hljs-number">2</span>)
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">options</span><span class="hljs-params">(repr.plot.width=<span class="hljs-number">11</span>, repr.plot.height=<span class="hljs-number">5</span>)</span></span>
+corrplot(data_new, <span class="hljs-attribute">order</span> = <span class="hljs-string">"hclust"</span>, type = <span class="hljs-string">'upper'</span>,
+         tl<span class="hljs-selector-class">.col</span> = <span class="hljs-string">"slategray"</span>, tl<span class="hljs-selector-class">.srt</span> = <span class="hljs-number">45</span>, tl<span class="hljs-selector-class">.cex</span> = <span class="hljs-number">0.75</span>, sig<span class="hljs-selector-class">.level</span> = .<span class="hljs-number">05</span>)
+</code></pre>
+<ul>
+<li>From above plot, we can remove those variables that have high correlation with each other. This will ensure inverse of our design matrix exists.</li>
+<li>We can observe below:</li>
+<li>Animal.Products (has high negative correlation with Vegetal.Products)</li>
+<li>Meat (has a high negative correlation with Vegetal.Products)</li>
+<li>Milk...Excluding.Butter (has high correlation with Vegetal.Products)</li>
+<li>Animal.fats (has high correlation with Vegetal.Products)</li>
+</ul>
+<p>Since Animal products and vegetal products are a combination of many variables, we will drop these two.</p>
+<pre><code class="lang-{r}">data_new = round(cor(select(df, c(- Aquatic<span class="hljs-selector-class">.Products</span>.<span class="hljs-selector-class">.Other</span>,
+                              - Fish.<span class="hljs-selector-class">.Seafood</span>, -Miscellaneous, -Country, -Undernourished, -Population, - Active,-Vegetal<span class="hljs-selector-class">.Products</span>,
+                              -Confirmed, -Deaths, -Animal<span class="hljs-selector-class">.Products</span>, -Spices, -Sugar<span class="hljs-selector-class">.Crops</span>, -Fruits..<span class="hljs-selector-class">.Excluding</span><span class="hljs-selector-class">.Wine</span>)),
+                 use = <span class="hljs-string">"na.or.complete"</span>), <span class="hljs-number">2</span>)
+</code></pre>
+<pre><code class="lang-{r}">residuals &lt;- cor.mtest(data_new, conf<span class="hljs-selector-class">.level</span> = .<span class="hljs-number">95</span>)
+
+<span class="hljs-function"><span class="hljs-title">options</span><span class="hljs-params">(repr.plot.width=<span class="hljs-number">11</span>, repr.plot.height=<span class="hljs-number">10</span>)</span></span>
+corrplot(data_new, <span class="hljs-attribute">order</span> = <span class="hljs-string">"hclust"</span>, type = <span class="hljs-string">'upper'</span>,
+         tl<span class="hljs-selector-class">.col</span> = <span class="hljs-string">"slategray"</span>, tl<span class="hljs-selector-class">.srt</span> = <span class="hljs-number">45</span>, tl<span class="hljs-selector-class">.cex</span> = <span class="hljs-number">0.75</span>)
+</code></pre>
+<pre><code class="lang-{r}">library(<span class="hljs-name">ggplot2</span>)
+options(<span class="hljs-name">repr</span>.plot.width=11, repr.plot.height=3)
+
+pltColors = c('Alcoholic.Beverages' = 'red', 'Animal.Products' = 'blue', 'Milk...Excluding.Butter' = 'green',
+              'Fruits...Excluding.Wine' = 'orange', 'Sugar...Sweeteners' = '#fcba03', 'Cereals...Excluding.Beer' = 'grey',
+              'Meat'='red', 'Vegetal.Products'='red', 'Pulses'='red', 'Starchy.Roots'='red'
+             )
+
+ggplot(<span class="hljs-name">df</span>, aes(<span class="hljs-name">x=1</span>, y=Alcoholic.Beverages, fill = 'Alcoholic.Beverages')) +
+  theme_update(<span class="hljs-name">plot</span>.title = element_text(<span class="hljs-name">hjust</span> = <span class="hljs-number">0.5</span>))+
+  theme_set(<span class="hljs-name">theme_bw</span>())+
+  theme(<span class="hljs-name">text</span> = element_text(<span class="hljs-name">size=14</span>))+
+  scale_x_continuous(<span class="hljs-name">breaks</span> = seq(<span class="hljs-number">1</span>, <span class="hljs-number">10</span>, by = <span class="hljs-number">1</span>))+
+#   coord_cartesian(<span class="hljs-name">ylim</span> = c(<span class="hljs-name">-20</span>, <span class="hljs-number">15</span>))+
+  labs(<span class="hljs-name">title=</span>'Boxplots of variables', x='Variable Number', y = '% inclusion in diet')+
+  scale_colour_manual(<span class="hljs-name">values=pltColors</span>)+
+  geom_boxplot(<span class="hljs-name">outlier</span>.shape = NA)+
+
+  geom_boxplot(<span class="hljs-name">aes</span>(<span class="hljs-name">x=2</span>, y=Animal.Products, fill='Animal.Products'), outlier.shape = NA)+
+  geom_boxplot(<span class="hljs-name">aes</span>(<span class="hljs-name">x=3</span>, y=Milk...Excluding.Butter, fill='Milk...Excluding.Butter'), outlier.shape = NA)+
+  geom_boxplot(<span class="hljs-name">aes</span>(<span class="hljs-name">x=4</span>, y=Fruits...Excluding.Wine, fill='Fruits...Excluding.Wine'), outlier.shape = NA)+
+  geom_boxplot(<span class="hljs-name">aes</span>(<span class="hljs-name">x=5</span>, y=Sugar...Sweeteners, fill='Sugar...Sweeteners'), outlier.shape = NA)+
+  geom_boxplot(<span class="hljs-name">aes</span>(<span class="hljs-name">x=6</span>, y=Cereals...Excluding.Beer, fill='Cereals...Excluding.Beer'), outlier.shape = NA)+
+  geom_boxplot(<span class="hljs-name">aes</span>(<span class="hljs-name">x=7</span>, y=Meat, fill='Meat'), outlier.shape = NA)+
+  geom_boxplot(<span class="hljs-name">aes</span>(<span class="hljs-name">x=8</span>, y=Vegetal.Products, fill='Vegetal.Products'), outlier.shape = NA)+
+  geom_boxplot(<span class="hljs-name">aes</span>(<span class="hljs-name">x=9</span>, y=Pulses, fill='Pulses'), outlier.shape = NA)+
+  geom_boxplot(<span class="hljs-name">aes</span>(<span class="hljs-name">x=10</span>, y=Starchy.Roots, fill='Starchy.Roots'), outlier.shape = NA)
+</code></pre>
+<pre><code class="lang-{r}">sort(<span class="hljs-name">names</span>(<span class="hljs-name">df</span>))
+</code></pre>
+<pre><code class="lang-{r}">options(<span class="hljs-name">repr</span>.plot.width=10, repr.plot.height=3)
+
+ggplot(<span class="hljs-name">df</span>, aes(<span class="hljs-name">x</span> = Recovered))+
+    theme_update(<span class="hljs-name">plot</span>.title = element_text(<span class="hljs-name">hjust</span> = <span class="hljs-number">0.5</span>))+
+    theme_set(<span class="hljs-name">theme_bw</span>())+
+    scale_x_continuous(<span class="hljs-name">breaks</span> = seq(<span class="hljs-name">-0</span>, <span class="hljs-number">10</span>, by = <span class="hljs-number">0.5</span>))+
+    theme(<span class="hljs-name">text</span> = element_text(<span class="hljs-name">size=12</span>))+
+    geom_density(<span class="hljs-name">fill</span> = 'darkorange')+
+    labs(<span class="hljs-name">title=</span>'Distribution Recovery Rate', x='Recovery Rate', y = 'density')
+</code></pre>
+<h2 id="linear-regression-model-">Linear Regression Model.</h2>
+<pre><code class="lang-{r}">data_raw = select(df, c(-Country, -Undernourished, -Population, -Active,
+                              -Confirmed, -Deaths, -Animal<span class="hljs-selector-class">.Products</span>, -Vegetal<span class="hljs-selector-class">.Products</span>, -Fish.<span class="hljs-selector-class">.Seafood</span>, -Miscellaneous,
+                       -Aquatic<span class="hljs-selector-class">.Products</span>.<span class="hljs-selector-class">.Other</span>, -Fruits..<span class="hljs-selector-class">.Excluding</span><span class="hljs-selector-class">.Wine</span>, -Animal<span class="hljs-selector-class">.Products</span>, -Milk..<span class="hljs-selector-class">.Excluding</span><span class="hljs-selector-class">.Butter</span>))
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-attr">trn_idx</span> = sample(nrow(data_raw), size = <span class="hljs-number">0.8</span> * nrow(data_raw))
+<span class="hljs-attr">trn_data</span> = data_raw[trn_idx, ]
+<span class="hljs-attr">tst_data</span> = data_raw[-trn_idx, ]
+</code></pre>
+<pre><code class="lang-{r}">column_NAs = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(x)</span></span>{
+  sum(<span class="hljs-keyword">is</span>.na(trn_data[,x]))
+}
+NAs = sapply(<span class="hljs-number">1</span>:ncol(trn_data), column_NAs)
+NAs
+</code></pre>
+<pre><code class="lang-{r}">lin_mod_a = lm(<span class="hljs-number">1</span>/ (<span class="hljs-name">Recovered+1</span>) ~ .,
+               data = trn_data)
+summary(<span class="hljs-name">lin_mod_a</span>)
+train_RMSE = sqrt(<span class="hljs-name">mean</span>(<span class="hljs-name">lin_mod_a</span>$residuals**2))
+train_RMSE
+test_RMSE = calc_RMSE(<span class="hljs-name">predict</span>(<span class="hljs-name">lin_mod_a</span>, tst_data), <span class="hljs-number">1</span>/(<span class="hljs-name">tst_data</span>$Recovered+1))
+test_RMSE
+</code></pre>
+<pre><code>Call:
+lm(formula = <span class="hljs-number">1</span>/(Recovered + <span class="hljs-number">1</span>) ~ ., data = trn_data)
+
+Residuals:
+     Min       <span class="hljs-number">1</span>Q   Median       <span class="hljs-number">3</span>Q      Max 
+-<span class="hljs-number">0.57831</span> -<span class="hljs-number">0.13821</span>  <span class="hljs-number">0.01277</span>  <span class="hljs-number">0.12058</span>  <span class="hljs-number">0.57939</span> 
+
+Coefficients:
+                          Estimate Std. Error t value Pr(&gt;|t|)   
+(Intercept)               <span class="hljs-number">0.662363</span>   <span class="hljs-number">0.521350</span>   <span class="hljs-number">1</span>.<span class="hljs-number">270</span>  <span class="hljs-number">0.20667</span>   
+Alcoholic.Beverages      -<span class="hljs-number">0.034068</span>   <span class="hljs-number">0.030424</span>  -<span class="hljs-number">1</span>.<span class="hljs-number">120</span>  <span class="hljs-number">0.26532</span>   
+Animal.fats              -<span class="hljs-number">0.047523</span>   <span class="hljs-number">0.023253</span>  -<span class="hljs-number">2</span>.<span class="hljs-number">044</span>  <span class="hljs-number">0.04344</span> * 
+Cereals...Excluding.Beer  <span class="hljs-number">0.003284</span>   <span class="hljs-number">0.010425</span>   <span class="hljs-number">0</span>.<span class="hljs-number">315</span>  <span class="hljs-number">0.75335</span>   
+Eggs                     -<span class="hljs-number">0.198189</span>   <span class="hljs-number">0.093972</span>  -<span class="hljs-number">2</span>.<span class="hljs-number">109</span>  <span class="hljs-number">0.03728</span> * 
+Meat                      <span class="hljs-number">0.045674</span>   <span class="hljs-number">0.018750</span>   <span class="hljs-number">2</span>.<span class="hljs-number">436</span>  <span class="hljs-number">0.01650</span> * 
+Offals                    <span class="hljs-number">0.067261</span>   <span class="hljs-number">0.215640</span>   <span class="hljs-number">0</span>.<span class="hljs-number">312</span>  <span class="hljs-number">0.75571</span>   
+Oilcrops                  <span class="hljs-number">0.039185</span>   <span class="hljs-number">0.021291</span>   <span class="hljs-number">1</span>.<span class="hljs-number">840</span>  <span class="hljs-number">0.06847</span> . 
+Pulses                    <span class="hljs-number">0.014965</span>   <span class="hljs-number">0.024131</span>   <span class="hljs-number">0</span>.<span class="hljs-number">620</span>  <span class="hljs-number">0.53647</span>   
+Spices                    <span class="hljs-number">0.032139</span>   <span class="hljs-number">0.092752</span>   <span class="hljs-number">0</span>.<span class="hljs-number">347</span>  <span class="hljs-number">0.72965</span>   
+Starchy.Roots             <span class="hljs-number">0.009585</span>   <span class="hljs-number">0.012303</span>   <span class="hljs-number">0</span>.<span class="hljs-number">779</span>  <span class="hljs-number">0.43768</span>   
+Stimulants               -<span class="hljs-number">0.028276</span>   <span class="hljs-number">0.090238</span>  -<span class="hljs-number">0</span>.<span class="hljs-number">313</span>  <span class="hljs-number">0.75463</span>   
+Sugar.Crops               <span class="hljs-number">0.374974</span>   <span class="hljs-number">0.351221</span>   <span class="hljs-number">1</span>.<span class="hljs-number">068</span>  <span class="hljs-number">0.28809</span>   
+Sugar...Sweeteners       -<span class="hljs-number">0.008180</span>   <span class="hljs-number">0.018823</span>  -<span class="hljs-number">0</span>.<span class="hljs-number">435</span>  <span class="hljs-number">0.66475</span>   
+Treenuts                 -<span class="hljs-number">0.098389</span>   <span class="hljs-number">0.080064</span>  -<span class="hljs-number">1</span>.<span class="hljs-number">229</span>  <span class="hljs-number">0.22181</span>   
+Vegetable.Oils            <span class="hljs-number">0.014783</span>   <span class="hljs-number">0.014492</span>   <span class="hljs-number">1</span>.<span class="hljs-number">020</span>  <span class="hljs-number">0.31000</span>   
+Vegetables               -<span class="hljs-number">0.006508</span>   <span class="hljs-number">0.042120</span>  -<span class="hljs-number">0</span>.<span class="hljs-number">155</span>  <span class="hljs-number">0.87750</span>   
+Obesity                  -<span class="hljs-number">0.010802</span>   <span class="hljs-number">0.003260</span>  -<span class="hljs-number">3</span>.<span class="hljs-number">314</span>  <span class="hljs-number">0.00126</span> **
+---
+Signif. codes:  <span class="hljs-number">0</span> '***' <span class="hljs-number">0</span>.<span class="hljs-number">001</span> '**' <span class="hljs-number">0</span>.<span class="hljs-number">01</span> '*' <span class="hljs-number">0</span>.<span class="hljs-number">05</span> '.' <span class="hljs-number">0</span>.<span class="hljs-number">1</span> ' ' <span class="hljs-number">1</span>
+
+Residual standard error: <span class="hljs-number">0</span>.<span class="hljs-number">2242</span> on <span class="hljs-number">107</span> degrees of freedom
+Multiple R-squared:  <span class="hljs-number">0</span>.<span class="hljs-number">5558</span>,    Adjusted R-squared:  <span class="hljs-number">0</span>.<span class="hljs-number">4852</span> 
+F-statistic: <span class="hljs-number">7</span>.<span class="hljs-number">875</span> on <span class="hljs-number">17</span> and <span class="hljs-number">107</span> DF,  p-value: <span class="hljs-number">2</span>.<span class="hljs-number">213</span>e-<span class="hljs-number">12</span>
+</code></pre><pre><code class="lang-{r}">lin_mod_b = lm(<span class="hljs-number">1</span>/ (<span class="hljs-name">Recovered+1</span>) ~ Meat + Oilcrops + Stimulants + Obesity + Eggs,
+               data = trn_data)
+summary(<span class="hljs-name">lin_mod_b</span>)
+
+train_RMSE = sqrt(<span class="hljs-name">mean</span>(<span class="hljs-name">lin_mod_b</span>$residuals**2))
+train_RMSE
+test_RMSE = calc_RMSE(<span class="hljs-name">predict</span>(<span class="hljs-name">lin_mod_b</span>, tst_data), <span class="hljs-number">1</span>/(<span class="hljs-name">tst_data</span>$Recovered+1))
+test_RMSE
+sqrt(<span class="hljs-name">mean</span>(<span class="hljs-name">lin_mod_b</span>$residuals**2))
+</code></pre>
+<pre><code><span class="hljs-keyword">Call</span>:
+lm(formula = <span class="hljs-number">1</span>/(Recovered + <span class="hljs-number">1</span>) ~ Meat + Oilcrops + Obesity + 
+    Eggs, <span class="hljs-keyword">data</span> = trn_data)
+
+Residuals:
+     <span class="hljs-keyword">Min</span>       <span class="hljs-number">1</span>Q   <span class="hljs-keyword">Median</span>       <span class="hljs-number">3</span>Q      <span class="hljs-keyword">Max</span> 
+<span class="hljs-number">-0.42009</span> <span class="hljs-number">-0.17548</span>  <span class="hljs-number">0.00408</span>  <span class="hljs-number">0.14644</span>  <span class="hljs-number">0.56907</span> 
+
+Coefficients:
+             Estimate Std. <span class="hljs-keyword">Error</span> t <span class="hljs-keyword">value</span> Pr(&gt;|t|)    
+(Intercept)  <span class="hljs-number">0.907099</span>   <span class="hljs-number">0.056017</span>  <span class="hljs-number">16.193</span>  &lt; <span class="hljs-number">2e-16</span> ***
+Meat         <span class="hljs-number">0.027308</span>   <span class="hljs-number">0.011609</span>   <span class="hljs-number">2.352</span>  <span class="hljs-number">0.02029</span> *  
+Oilcrops     <span class="hljs-number">0.047558</span>   <span class="hljs-number">0.016201</span>   <span class="hljs-number">2.936</span>  <span class="hljs-number">0.00399</span> ** 
+Obesity     <span class="hljs-number">-0.015712</span>   <span class="hljs-number">0.002652</span>  <span class="hljs-number">-5.923</span> <span class="hljs-number">3.08e-08</span> ***
+Eggs        <span class="hljs-number">-0.371817</span>   <span class="hljs-number">0.081386</span>  <span class="hljs-number">-4.569</span> <span class="hljs-number">1.20e-05</span> ***
+<span class="hljs-comment">---</span>
+Signif. codes:  <span class="hljs-number">0</span> <span class="hljs-string">'***'</span> <span class="hljs-number">0.001</span> <span class="hljs-string">'**'</span> <span class="hljs-number">0.01</span> <span class="hljs-string">'*'</span> <span class="hljs-number">0.05</span> <span class="hljs-string">'.'</span> <span class="hljs-number">0.1</span> <span class="hljs-string">' '</span> <span class="hljs-number">1</span>
+
+Residual standard <span class="hljs-keyword">error</span>: <span class="hljs-number">0.2315</span> <span class="hljs-keyword">on</span> <span class="hljs-number">120</span> <span class="hljs-keyword">degrees</span> <span class="hljs-keyword">of</span> freedom
+Multiple R-squared:  <span class="hljs-number">0.4689</span>,    Adjusted R-squared:  <span class="hljs-number">0.4512</span> 
+F-statistic: <span class="hljs-number">26.49</span> <span class="hljs-keyword">on</span> <span class="hljs-number">4</span> <span class="hljs-keyword">and</span> <span class="hljs-number">120</span> DF,  p-<span class="hljs-keyword">value</span>: <span class="hljs-number">9.414e-16</span>
+</code></pre><pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">anova</span><span class="hljs-params">(lin_mod_b, lin_mod_a)</span></span>
+</code></pre>
+<h2 id="knn-regression-model">KNN Regression Model</h2>
+<pre><code class="lang-{r}"><span class="hljs-keyword">set</span>.seed(<span class="hljs-number">42</span>)
+model_Control = trainControl(<span class="hljs-function"><span class="hljs-keyword">method</span> = "<span class="hljs-title">cv</span>", <span class="hljs-title">number</span> = 5)
+
+<span class="hljs-title">knn_model_full</span> = <span class="hljs-title">train</span><span class="hljs-params">(
+  form = 1/ (Recovered+1)</span> ~.,
+  <span class="hljs-title">data</span> = <span class="hljs-title">trn_data</span>,
+  <span class="hljs-title">trControl</span> = <span class="hljs-title">model_Control</span>,
+  <span class="hljs-title">method</span> = "<span class="hljs-title">knn</span>",
+  <span class="hljs-title">tuneGrid</span> = <span class="hljs-title">expand</span>.<span class="hljs-title">grid</span><span class="hljs-params">(k = seq(1, 30, <span class="hljs-keyword">by</span> = 1)</span>)
+)
+
+<span class="hljs-title">knn_model_full</span></span>
+</code></pre>
+<pre><code>k-Nearest Neighbors 
+
+<span class="hljs-number">125</span> samples
+ <span class="hljs-number">17</span> predictor
+
+No pre-processing
+Resampling: Cross-Validated (<span class="hljs-number">5</span> fold) 
+Summary of sample sizes: <span class="hljs-number">100</span>, <span class="hljs-number">100</span>, <span class="hljs-number">101</span>, <span class="hljs-number">100</span>, <span class="hljs-number">99</span> 
+Resampling results across tuning parameters:
+
+  k   RMSE       Rsquared   MAE      
+   <span class="hljs-number">1</span>  <span class="hljs-number">0.3086230</span>  <span class="hljs-number">0.2477358</span>  <span class="hljs-number">0.2308274</span>
+   <span class="hljs-number">2</span>  <span class="hljs-number">0.2879346</span>  <span class="hljs-number">0.2649755</span>  <span class="hljs-number">0.2262520</span>
+   <span class="hljs-number">3</span>  <span class="hljs-number">0.2675536</span>  <span class="hljs-number">0.3256232</span>  <span class="hljs-number">0.2079687</span>
+   <span class="hljs-number">4</span>  <span class="hljs-number">0.2641689</span>  <span class="hljs-number">0.3125542</span>  <span class="hljs-number">0.2081874</span>
+   <span class="hljs-number">5</span>  <span class="hljs-number">0.2601669</span>  <span class="hljs-number">0.3345824</span>  <span class="hljs-number">0.2072483</span>
+   <span class="hljs-number">6</span>  <span class="hljs-number">0.2609612</span>  <span class="hljs-number">0.3286910</span>  <span class="hljs-number">0.2101020</span>
+   <span class="hljs-number">7</span>  <span class="hljs-number">0.2570235</span>  <span class="hljs-number">0.3417433</span>  <span class="hljs-number">0.2082592</span>
+   <span class="hljs-number">8</span>  <span class="hljs-number">0.2524604</span>  <span class="hljs-number">0.3553865</span>  <span class="hljs-number">0.2039431</span>
+   <span class="hljs-number">9</span>  <span class="hljs-number">0.2515286</span>  <span class="hljs-number">0.3630446</span>  <span class="hljs-number">0.2040741</span>
+  <span class="hljs-number">10</span>  <span class="hljs-number">0.2494470</span>  <span class="hljs-number">0.3737077</span>  <span class="hljs-number">0.2040547</span>
+  <span class="hljs-number">11</span>  <span class="hljs-number">0.2494592</span>  <span class="hljs-number">0.3773883</span>  <span class="hljs-number">0.2032202</span>
+  <span class="hljs-number">12</span>  <span class="hljs-number">0.2504384</span>  <span class="hljs-number">0.3754209</span>  <span class="hljs-number">0.2041506</span>
+  <span class="hljs-number">13</span>  <span class="hljs-number">0.2506940</span>  <span class="hljs-number">0.3686961</span>  <span class="hljs-number">0.2040669</span>
+  <span class="hljs-number">14</span>  <span class="hljs-number">0.2473458</span>  <span class="hljs-number">0.3847179</span>  <span class="hljs-number">0.2012165</span>
+  <span class="hljs-number">15</span>  <span class="hljs-number">0.2470133</span>  <span class="hljs-number">0.3859655</span>  <span class="hljs-number">0.2006184</span>
+  <span class="hljs-number">16</span>  <span class="hljs-number">0.2456363</span>  <span class="hljs-number">0.3941795</span>  <span class="hljs-number">0.2006268</span>
+  <span class="hljs-number">17</span>  <span class="hljs-number">0.2455056</span>  <span class="hljs-number">0.3970150</span>  <span class="hljs-number">0.2013624</span>
+  <span class="hljs-number">18</span>  <span class="hljs-number">0.2430002</span>  <span class="hljs-number">0.4112686</span>  <span class="hljs-number">0.1996432</span>
+  <span class="hljs-number">19</span>  <span class="hljs-number">0.2438558</span>  <span class="hljs-number">0.4071431</span>  <span class="hljs-number">0.2000766</span>
+  <span class="hljs-number">20</span>  <span class="hljs-number">0.2434126</span>  <span class="hljs-number">0.4075207</span>  <span class="hljs-number">0.1988554</span>
+  <span class="hljs-number">21</span>  <span class="hljs-number">0.2453543</span>  <span class="hljs-number">0.4025499</span>  <span class="hljs-number">0.2021054</span>
+  <span class="hljs-number">22</span>  <span class="hljs-number">0.2470253</span>  <span class="hljs-number">0.3953807</span>  <span class="hljs-number">0.2036924</span>
+  <span class="hljs-number">23</span>  <span class="hljs-number">0.2475662</span>  <span class="hljs-number">0.3934078</span>  <span class="hljs-number">0.2043818</span>
+  <span class="hljs-number">24</span>  <span class="hljs-number">0.2482036</span>  <span class="hljs-number">0.3897966</span>  <span class="hljs-number">0.2057288</span>
+  <span class="hljs-number">25</span>  <span class="hljs-number">0.2476881</span>  <span class="hljs-number">0.3938470</span>  <span class="hljs-number">0.2047464</span>
+  <span class="hljs-number">26</span>  <span class="hljs-number">0.2501903</span>  <span class="hljs-number">0.3803010</span>  <span class="hljs-number">0.2078737</span>
+  <span class="hljs-number">27</span>  <span class="hljs-number">0.2507582</span>  <span class="hljs-number">0.3767070</span>  <span class="hljs-number">0.2084322</span>
+  <span class="hljs-number">28</span>  <span class="hljs-number">0.2505742</span>  <span class="hljs-number">0.3798246</span>  <span class="hljs-number">0.2077167</span>
+  <span class="hljs-number">29</span>  <span class="hljs-number">0.2505951</span>  <span class="hljs-number">0.3790820</span>  <span class="hljs-number">0.2075027</span>
+  <span class="hljs-number">30</span>  <span class="hljs-number">0.2501369</span>  <span class="hljs-number">0.3818961</span>  <span class="hljs-number">0.2084387</span>
+
+RMSE was used to select the optimal model using the smallest value.
+The final value used for the model was k = <span class="hljs-number">18</span>.
+</code></pre><pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">oneSE</span><span class="hljs-params">(knn_model_full<span class="hljs-variable">$results</span>, <span class="hljs-string">"RMSE"</span>, maximize = F, num = <span class="hljs-number">30</span>)</span></span>
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-keyword">set</span>.seed(<span class="hljs-number">42</span>)
+knn_model_reduced = train(
+  form = <span class="hljs-number">1</span>/ (Recovered+<span class="hljs-number">1</span>) ~ Treenuts+ Alcoholic.Beverages + Oilcrops + Stimulants + Obesity + Eggs,
+  data = trn_data,
+  trControl = model_Control,
+  <span class="hljs-function"><span class="hljs-keyword">method</span> = "<span class="hljs-title">knn</span>",
+  <span class="hljs-title">tuneGrid</span> = <span class="hljs-title">expand</span>.<span class="hljs-title">grid</span><span class="hljs-params">(k = seq(1, 30, <span class="hljs-keyword">by</span> = 1)</span>)
+)
+
+<span class="hljs-title">knn_model_reduced</span></span>
+</code></pre>
+<pre><code>k-Nearest Neighbors 
+
+<span class="hljs-number">125</span> samples
+  <span class="hljs-number">6</span> predictor
+
+No pre-processing
+Resampling: Cross-Validated (<span class="hljs-number">5</span> fold) 
+Summary of sample sizes: <span class="hljs-number">100</span>, <span class="hljs-number">100</span>, <span class="hljs-number">101</span>, <span class="hljs-number">100</span>, <span class="hljs-number">99</span> 
+Resampling results across tuning parameters:
+
+  k   RMSE       Rsquared   MAE      
+   <span class="hljs-number">1</span>  <span class="hljs-number">0.3195392</span>  <span class="hljs-number">0.2212923</span>  <span class="hljs-number">0.2212317</span>
+   <span class="hljs-number">2</span>  <span class="hljs-number">0.2782241</span>  <span class="hljs-number">0.3271537</span>  <span class="hljs-number">0.2152032</span>
+   <span class="hljs-number">3</span>  <span class="hljs-number">0.2682520</span>  <span class="hljs-number">0.3307200</span>  <span class="hljs-number">0.2073083</span>
+   <span class="hljs-number">4</span>  <span class="hljs-number">0.2623724</span>  <span class="hljs-number">0.3397060</span>  <span class="hljs-number">0.2012443</span>
+   <span class="hljs-number">5</span>  <span class="hljs-number">0.2659895</span>  <span class="hljs-number">0.3275306</span>  <span class="hljs-number">0.2079542</span>
+   <span class="hljs-number">6</span>  <span class="hljs-number">0.2624285</span>  <span class="hljs-number">0.3438730</span>  <span class="hljs-number">0.2062330</span>
+   <span class="hljs-number">7</span>  <span class="hljs-number">0.2523637</span>  <span class="hljs-number">0.3822842</span>  <span class="hljs-number">0.2023658</span>
+   <span class="hljs-number">8</span>  <span class="hljs-number">0.2552468</span>  <span class="hljs-number">0.3651409</span>  <span class="hljs-number">0.2063210</span>
+   <span class="hljs-number">9</span>  <span class="hljs-number">0.2487573</span>  <span class="hljs-number">0.3876332</span>  <span class="hljs-number">0.2022627</span>
+  <span class="hljs-number">10</span>  <span class="hljs-number">0.2445888</span>  <span class="hljs-number">0.4021624</span>  <span class="hljs-number">0.2000082</span>
+  <span class="hljs-number">11</span>  <span class="hljs-number">0.2452377</span>  <span class="hljs-number">0.4020039</span>  <span class="hljs-number">0.2001598</span>
+  <span class="hljs-number">12</span>  <span class="hljs-number">0.2445067</span>  <span class="hljs-number">0.4079837</span>  <span class="hljs-number">0.1983940</span>
+  <span class="hljs-number">13</span>  <span class="hljs-number">0.2481444</span>  <span class="hljs-number">0.3878049</span>  <span class="hljs-number">0.2024846</span>
+  <span class="hljs-number">14</span>  <span class="hljs-number">0.2486045</span>  <span class="hljs-number">0.3870059</span>  <span class="hljs-number">0.2029650</span>
+  <span class="hljs-number">15</span>  <span class="hljs-number">0.2495301</span>  <span class="hljs-number">0.3800953</span>  <span class="hljs-number">0.2037663</span>
+  <span class="hljs-number">16</span>  <span class="hljs-number">0.2516702</span>  <span class="hljs-number">0.3716461</span>  <span class="hljs-number">0.2060076</span>
+  <span class="hljs-number">17</span>  <span class="hljs-number">0.2512151</span>  <span class="hljs-number">0.3744111</span>  <span class="hljs-number">0.2055430</span>
+  <span class="hljs-number">18</span>  <span class="hljs-number">0.2535295</span>  <span class="hljs-number">0.3618396</span>  <span class="hljs-number">0.2068393</span>
+  <span class="hljs-number">19</span>  <span class="hljs-number">0.2529939</span>  <span class="hljs-number">0.3633395</span>  <span class="hljs-number">0.2067349</span>
+  <span class="hljs-number">20</span>  <span class="hljs-number">0.2549596</span>  <span class="hljs-number">0.3533919</span>  <span class="hljs-number">0.2081202</span>
+  <span class="hljs-number">21</span>  <span class="hljs-number">0.2554164</span>  <span class="hljs-number">0.3524949</span>  <span class="hljs-number">0.2085796</span>
+  <span class="hljs-number">22</span>  <span class="hljs-number">0.2559517</span>  <span class="hljs-number">0.3527068</span>  <span class="hljs-number">0.2103921</span>
+  <span class="hljs-number">23</span>  <span class="hljs-number">0.2561919</span>  <span class="hljs-number">0.3508190</span>  <span class="hljs-number">0.2096798</span>
+  <span class="hljs-number">24</span>  <span class="hljs-number">0.2563312</span>  <span class="hljs-number">0.3504448</span>  <span class="hljs-number">0.2088550</span>
+  <span class="hljs-number">25</span>  <span class="hljs-number">0.2560844</span>  <span class="hljs-number">0.3514421</span>  <span class="hljs-number">0.2086865</span>
+  <span class="hljs-number">26</span>  <span class="hljs-number">0.2545030</span>  <span class="hljs-number">0.3606815</span>  <span class="hljs-number">0.2078659</span>
+  <span class="hljs-number">27</span>  <span class="hljs-number">0.2545211</span>  <span class="hljs-number">0.3618597</span>  <span class="hljs-number">0.2081785</span>
+  <span class="hljs-number">28</span>  <span class="hljs-number">0.2543235</span>  <span class="hljs-number">0.3630960</span>  <span class="hljs-number">0.2076093</span>
+  <span class="hljs-number">29</span>  <span class="hljs-number">0.2530016</span>  <span class="hljs-number">0.3684946</span>  <span class="hljs-number">0.2066882</span>
+  <span class="hljs-number">30</span>  <span class="hljs-number">0.2533339</span>  <span class="hljs-number">0.3675101</span>  <span class="hljs-number">0.2075281</span>
+
+RMSE was used to select the optimal model using the smallest value.
+The final value used for the model was k = <span class="hljs-number">12</span>.
+</code></pre><pre><code class="lang-{r}">calc_RMSE = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(predicted, actual)</span></span>{
+    <span class="hljs-built_in">sqrt</span>(mean((predicted - actual)**<span class="hljs-number">2</span>))
+}
+</code></pre>
+<pre><code class="lang-{r}">pred = predict(<span class="hljs-name">knn_model_full</span>, tst_data)
+calc_RMSE(<span class="hljs-name">pred</span>, <span class="hljs-number">1</span>/(<span class="hljs-name">tst_data</span>$Recovered+1))
+</code></pre>
+<pre><code class="lang-{r}">pred = predict(<span class="hljs-name">knn_model_reduced</span>, tst_data)
+calc_RMSE(<span class="hljs-name">pred</span>, <span class="hljs-number">1</span>/(<span class="hljs-name">tst_data</span>$Recovered+1))
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-title">knn_full_model_rmse</span> = <span class="hljs-class"><span class="hljs-keyword">data</span>.frame(<span class="hljs-title">knn_model_full</span>$<span class="hljs-title">results</span>)</span>
+<span class="hljs-title">knn_reduce_model_rmse</span> = <span class="hljs-class"><span class="hljs-keyword">data</span>.frame(<span class="hljs-title">knn_model_reduced</span>$<span class="hljs-title">results</span>)</span>
+
+<span class="hljs-title">head</span>(knn_full_model_rmse,<span class="hljs-number">3</span>)
+</code></pre>
+<pre><code class="lang-{r}">options(<span class="hljs-name">repr</span>.plot.width=10, repr.plot.height=5)
+
+ggplot(<span class="hljs-name">data</span> = knn_full_model_rmse, aes(<span class="hljs-name">x</span> = k, y = RMSE, color = 'Full Model')) +
+  theme_update(<span class="hljs-name">plot</span>.title = element_text(<span class="hljs-name">hjust</span> = <span class="hljs-number">0.5</span>))+
+  theme_set(<span class="hljs-name">theme_bw</span>())+
+  theme(<span class="hljs-name">text</span> = element_text(<span class="hljs-name">size=14</span>))+
+  labs(<span class="hljs-name">title=</span>'KNN model Tuning', x='k', y = 'Cross Validated RMSE')+
+  scale_x_continuous(<span class="hljs-name">breaks</span> = seq(<span class="hljs-number">1</span>, <span class="hljs-number">30</span>, by = <span class="hljs-number">4</span>))+
+
+  geom_line()+
+  geom_point()+
+
+  geom_line(<span class="hljs-name">aes</span>(<span class="hljs-name">x</span> = knn_reduce_model_rmse$k, y = knn_reduce_model_rmse$RMSE, color = <span class="hljs-string">"Reduced Model"</span>))+
+  geom_point(<span class="hljs-name">aes</span>(<span class="hljs-name">x</span> = knn_reduce_model_rmse$k, y = knn_reduce_model_rmse$RMSE, color = <span class="hljs-string">"Reduced Model"</span>))
+</code></pre>
+<pre><code class="lang-{r}"># knn_mod_a = knnreg(<span class="hljs-name">Recovered</span> ~., data = trn_data)
+# calc_RMSE(<span class="hljs-name">predict</span>(<span class="hljs-name">knn_mod_a</span>, trn_data), trn_data$Recovered)
+</code></pre>
+<pre><code class="lang-{r}"># knn_mod_b = knnreg(<span class="hljs-name">Recovered</span> ~ Animal.fats+Stimulants+Obesity, data = trn_data)
+# calc_RMSE(<span class="hljs-name">predict</span>(<span class="hljs-name">knn_mod_b</span>, trn_data), trn_data$Recovered)
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-meta"># Ks = seq(2, 20, 1)</span>
+<span class="hljs-meta"># create_models = function(kNumber){</span>
+<span class="hljs-meta">#     knnreg(Recovered ~., data = trn_data, k = kNumber)</span>
+<span class="hljs-meta"># }</span>
+<span class="hljs-meta"># create_models_1 = function(kNumber){</span>
+<span class="hljs-meta">#     knnreg(Recovered ~ Animal.fats+Stimulants+Obesity, data = trn_data, k = kNumber)</span>
+<span class="hljs-meta"># }</span>
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-meta"># models = lapply(Ks, create_models)</span>
+<span class="hljs-meta"># predictions = lapply(models, predict, tst_data)</span>
+<span class="hljs-meta"># RMSEs = sapply(predictions, calc_RMSE, tst_data$Recovered)</span>
+<span class="hljs-meta"># RMSEs</span>
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-meta"># models = lapply(Ks, create_models_1)</span>
+<span class="hljs-meta"># predictions = lapply(models, predict, tst_data)</span>
+<span class="hljs-meta"># RMSEs = sapply(predictions, calc_RMSE, tst_data$Recovered)</span>
+<span class="hljs-meta"># RMSEs</span>
+</code></pre>
+<ul>
+<li>Instead of fitting model with all variables, it is better to fit the model with lesser variables.</li>
+</ul>
+<h2 id="decision-tree-model">Decision Tree Model</h2>
+<pre><code class="lang-{r}"><span class="hljs-keyword">set</span>.seed(<span class="hljs-number">42</span>)
+model_Control = trainControl(<span class="hljs-function"><span class="hljs-keyword">method</span> = "<span class="hljs-title">cv</span>", <span class="hljs-title">number</span> = 5)
+
+<span class="hljs-title">decision_tree_full_model</span> = <span class="hljs-title">train</span><span class="hljs-params">(
+  form = 1/ (Recovered+1)</span> ~ .,
+  <span class="hljs-title">data</span> = <span class="hljs-title">trn_data</span>,
+  <span class="hljs-title">trControl</span> = <span class="hljs-title">model_Control</span>,
+  <span class="hljs-title">method</span> = "<span class="hljs-title">rpart</span>",
+  <span class="hljs-title">tuneGrid</span> = <span class="hljs-title">expand</span>.<span class="hljs-title">grid</span><span class="hljs-params">(cp = seq(0, 0.15, 0.005)</span>)
+)
+
+<span class="hljs-title">decision_tree_full_model</span></span>
+</code></pre>
+<pre><code>CART 
+
+<span class="hljs-number">125</span> samples
+ <span class="hljs-number">17</span> predictor
+
+No pre-processing
+Resampling: Cross-Validated (<span class="hljs-number">5</span> fold) 
+Summary of sample sizes: <span class="hljs-number">100</span>, <span class="hljs-number">100</span>, <span class="hljs-number">101</span>, <span class="hljs-number">100</span>, <span class="hljs-number">99</span> 
+Resampling results across tuning parameters:
+
+  cp     RMSE       Rsquared   MAE      
+  <span class="hljs-number">0</span>.<span class="hljs-number">000</span>  <span class="hljs-number">0.2658556</span>  <span class="hljs-number">0.3696466</span>  <span class="hljs-number">0.2008034</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">005</span>  <span class="hljs-number">0.2658191</span>  <span class="hljs-number">0.3720291</span>  <span class="hljs-number">0.2012675</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">010</span>  <span class="hljs-number">0.2665000</span>  <span class="hljs-number">0.3713921</span>  <span class="hljs-number">0.2016928</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">015</span>  <span class="hljs-number">0.2651504</span>  <span class="hljs-number">0.3756580</span>  <span class="hljs-number">0.2008188</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">020</span>  <span class="hljs-number">0.2632663</span>  <span class="hljs-number">0.3763754</span>  <span class="hljs-number">0.2000169</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">025</span>  <span class="hljs-number">0.2626826</span>  <span class="hljs-number">0.3781700</span>  <span class="hljs-number">0.1992159</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">030</span>  <span class="hljs-number">0.2626826</span>  <span class="hljs-number">0.3781700</span>  <span class="hljs-number">0.1992159</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">035</span>  <span class="hljs-number">0.2626826</span>  <span class="hljs-number">0.3781700</span>  <span class="hljs-number">0.1992159</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">040</span>  <span class="hljs-number">0.2652839</span>  <span class="hljs-number">0.3704513</span>  <span class="hljs-number">0.1999894</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">045</span>  <span class="hljs-number">0.2656474</span>  <span class="hljs-number">0.3675637</span>  <span class="hljs-number">0.1993722</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">050</span>  <span class="hljs-number">0.2643262</span>  <span class="hljs-number">0.3506538</span>  <span class="hljs-number">0.2027102</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">055</span>  <span class="hljs-number">0.2723633</span>  <span class="hljs-number">0.3089578</span>  <span class="hljs-number">0.2134252</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">060</span>  <span class="hljs-number">0.2723633</span>  <span class="hljs-number">0.3089578</span>  <span class="hljs-number">0.2134252</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">065</span>  <span class="hljs-number">0.2701140</span>  <span class="hljs-number">0.3153852</span>  <span class="hljs-number">0.2118146</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">070</span>  <span class="hljs-number">0.2701140</span>  <span class="hljs-number">0.3153852</span>  <span class="hljs-number">0.2118146</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">075</span>  <span class="hljs-number">0.2639001</span>  <span class="hljs-number">0.3332551</span>  <span class="hljs-number">0.2123586</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">080</span>  <span class="hljs-number">0.2639001</span>  <span class="hljs-number">0.3332551</span>  <span class="hljs-number">0.2123586</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">085</span>  <span class="hljs-number">0.2639001</span>  <span class="hljs-number">0.3332551</span>  <span class="hljs-number">0.2123586</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">090</span>  <span class="hljs-number">0.2705996</span>  <span class="hljs-number">0.2967000</span>  <span class="hljs-number">0.2190173</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">095</span>  <span class="hljs-number">0.2705996</span>  <span class="hljs-number">0.2967000</span>  <span class="hljs-number">0.2190173</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">100</span>  <span class="hljs-number">0.2705996</span>  <span class="hljs-number">0.2967000</span>  <span class="hljs-number">0.2190173</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">105</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">110</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">115</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">120</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">125</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">130</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">135</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">140</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">145</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">150</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+
+RMSE was used to select the optimal model using the smallest value.
+The final value used for the model was cp = <span class="hljs-number">0</span>.<span class="hljs-number">035</span>.
+</code></pre><pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">library</span><span class="hljs-params">(vip)</span></span>
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">vip</span><span class="hljs-params">(decision_tree_full_model, num_features = <span class="hljs-number">40</span>, bar = FALSE)</span></span>
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-keyword">set</span>.seed(<span class="hljs-number">42</span>)
+model_Control = trainControl(<span class="hljs-function"><span class="hljs-keyword">method</span> = "<span class="hljs-title">cv</span>", <span class="hljs-title">number</span> = 5)
+
+<span class="hljs-title">decision_tree_reduced_model</span> = <span class="hljs-title">train</span><span class="hljs-params">(
+  form = 1 / (Recovered+1)</span> ~ <span class="hljs-title">Animal</span>.<span class="hljs-title">fats</span> + <span class="hljs-title">Sugar</span>...<span class="hljs-title">Sweeteners</span> + <span class="hljs-title">Oilcrops</span> + <span class="hljs-title">Stimulants</span> + <span class="hljs-title">Obesity</span> + <span class="hljs-title">Eggs</span> + <span class="hljs-title">Treenuts</span>,
+  <span class="hljs-title">data</span> = <span class="hljs-title">trn_data</span>,
+  <span class="hljs-title">trControl</span> = <span class="hljs-title">model_Control</span>,
+  <span class="hljs-title">method</span> = "<span class="hljs-title">rpart</span>",
+  <span class="hljs-title">tuneGrid</span> = <span class="hljs-title">expand</span>.<span class="hljs-title">grid</span><span class="hljs-params">(cp = seq(0, 0.15, 0.005)</span>)
+)
+
+<span class="hljs-title">decision_tree_reduced_model</span></span>
+</code></pre>
+<pre><code>CART 
+
+<span class="hljs-number">125</span> samples
+  <span class="hljs-number">7</span> predictor
+
+No pre-processing
+Resampling: Cross-Validated (<span class="hljs-number">5</span> fold) 
+Summary of sample sizes: <span class="hljs-number">100</span>, <span class="hljs-number">100</span>, <span class="hljs-number">101</span>, <span class="hljs-number">100</span>, <span class="hljs-number">99</span> 
+Resampling results across tuning parameters:
+
+  cp     RMSE       Rsquared   MAE      
+  <span class="hljs-number">0</span>.<span class="hljs-number">000</span>  <span class="hljs-number">0.2665762</span>  <span class="hljs-number">0.3472093</span>  <span class="hljs-number">0.1996699</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">005</span>  <span class="hljs-number">0.2664687</span>  <span class="hljs-number">0.3508183</span>  <span class="hljs-number">0.1995066</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">010</span>  <span class="hljs-number">0.2671534</span>  <span class="hljs-number">0.3505947</span>  <span class="hljs-number">0.1999319</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">015</span>  <span class="hljs-number">0.2658724</span>  <span class="hljs-number">0.3546147</span>  <span class="hljs-number">0.1990580</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">020</span>  <span class="hljs-number">0.2636568</span>  <span class="hljs-number">0.3588233</span>  <span class="hljs-number">0.1982560</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">025</span>  <span class="hljs-number">0.2615008</span>  <span class="hljs-number">0.3570890</span>  <span class="hljs-number">0.1977699</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">030</span>  <span class="hljs-number">0.2615008</span>  <span class="hljs-number">0.3570890</span>  <span class="hljs-number">0.1977699</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">035</span>  <span class="hljs-number">0.2615008</span>  <span class="hljs-number">0.3570890</span>  <span class="hljs-number">0.1977699</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">040</span>  <span class="hljs-number">0.2605518</span>  <span class="hljs-number">0.3622842</span>  <span class="hljs-number">0.1965231</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">045</span>  <span class="hljs-number">0.2609370</span>  <span class="hljs-number">0.3584454</span>  <span class="hljs-number">0.1986352</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">050</span>  <span class="hljs-number">0.2600556</span>  <span class="hljs-number">0.3545144</span>  <span class="hljs-number">0.2008717</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">055</span>  <span class="hljs-number">0.2640319</span>  <span class="hljs-number">0.3368808</span>  <span class="hljs-number">0.2106728</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">060</span>  <span class="hljs-number">0.2640319</span>  <span class="hljs-number">0.3368808</span>  <span class="hljs-number">0.2106728</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">065</span>  <span class="hljs-number">0.2617826</span>  <span class="hljs-number">0.3433082</span>  <span class="hljs-number">0.2090622</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">070</span>  <span class="hljs-number">0.2617826</span>  <span class="hljs-number">0.3433082</span>  <span class="hljs-number">0.2090622</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">075</span>  <span class="hljs-number">0.2639001</span>  <span class="hljs-number">0.3332551</span>  <span class="hljs-number">0.2123586</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">080</span>  <span class="hljs-number">0.2639001</span>  <span class="hljs-number">0.3332551</span>  <span class="hljs-number">0.2123586</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">085</span>  <span class="hljs-number">0.2639001</span>  <span class="hljs-number">0.3332551</span>  <span class="hljs-number">0.2123586</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">090</span>  <span class="hljs-number">0.2705996</span>  <span class="hljs-number">0.2967000</span>  <span class="hljs-number">0.2190173</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">095</span>  <span class="hljs-number">0.2705996</span>  <span class="hljs-number">0.2967000</span>  <span class="hljs-number">0.2190173</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">100</span>  <span class="hljs-number">0.2705996</span>  <span class="hljs-number">0.2967000</span>  <span class="hljs-number">0.2190173</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">105</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">110</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">115</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">120</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">125</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">130</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">135</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">140</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">145</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">150</span>  <span class="hljs-number">0.2662403</span>  <span class="hljs-number">0.2985941</span>  <span class="hljs-number">0.2184950</span>
+
+RMSE was used to select the optimal model using the smallest value.
+The final value used for the model was cp = <span class="hljs-number">0</span>.<span class="hljs-number">05</span>.
+</code></pre><pre><code class="lang-{r}">pred = predict(<span class="hljs-name">decision_tree_full_model</span>, tst_data)
+calc_RMSE(<span class="hljs-name">pred</span>, <span class="hljs-number">1</span>/(<span class="hljs-name">tst_data</span>$Recovered+1))
+</code></pre>
+<p>0.266362651090497</p>
+<pre><code class="lang-{r}">pred = predict(<span class="hljs-name">decision_tree_reduced_model</span>, tst_data)
+calc_RMSE(<span class="hljs-name">pred</span>, <span class="hljs-number">1</span>/(<span class="hljs-name">tst_data</span>$Recovered+1))
+</code></pre>
+<p>0.258462408588737</p>
+<pre><code class="lang-{r}"><span class="hljs-title">decision_tree_full_model_rmse</span> = <span class="hljs-class"><span class="hljs-keyword">data</span>.frame(<span class="hljs-title">decision_tree_full_model</span>$<span class="hljs-title">results</span>)</span>
+<span class="hljs-title">decision_tree_reduce_model_rmse</span> = <span class="hljs-class"><span class="hljs-keyword">data</span>.frame(<span class="hljs-title">decision_tree_reduced_model</span>$<span class="hljs-title">results</span>)</span>
+
+<span class="hljs-title">head</span>(decision_tree_full_model_rmse,<span class="hljs-number">3</span>)
+</code></pre>
+<pre><code class="lang-{r}">options(<span class="hljs-name">repr</span>.plot.width=10, repr.plot.height=5)
+
+ggplot(<span class="hljs-name">data</span> = decision_tree_full_model_rmse, aes(<span class="hljs-name">x</span> = cp, y = RMSE, color = 'Full Model')) +
+  theme_update(<span class="hljs-name">plot</span>.title = element_text(<span class="hljs-name">hjust</span> = <span class="hljs-number">0.5</span>))+
+  theme_set(<span class="hljs-name">theme_bw</span>())+
+  theme(<span class="hljs-name">text</span> = element_text(<span class="hljs-name">size=14</span>))+
+  labs(<span class="hljs-name">title=</span>'Decision tree model Tuning', x='cp', y = 'Cross Validated RMSE')+
+  scale_x_continuous(<span class="hljs-name">breaks</span> = seq(<span class="hljs-number">0</span>, <span class="hljs-number">0.2</span>, by = <span class="hljs-number">0.02</span>))+
+
+  geom_line()+
+  geom_point()+
+
+  geom_line(<span class="hljs-name">aes</span>(<span class="hljs-name">x</span> = decision_tree_reduce_model_rmse$cp, y = decision_tree_reduce_model_rmse$RMSE, color = <span class="hljs-string">"Reduced Model"</span>))+
+  geom_point(<span class="hljs-name">aes</span>(<span class="hljs-name">x</span> = decision_tree_reduce_model_rmse$cp, y = decision_tree_reduce_model_rmse$RMSE, color = <span class="hljs-string">"Reduced Model"</span>))
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-attr">pred</span> = predict(decision_tree_full_model, tst_data)
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">library</span><span class="hljs-params">(rattle)</span></span>
+<span class="hljs-function"><span class="hljs-title">fancyRpartPlot</span><span class="hljs-params">(decision_tree_full_model<span class="hljs-variable">$finalModel</span>)</span></span>
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">fancyRpartPlot</span><span class="hljs-params">(decision_tree_reduced_model<span class="hljs-variable">$finalModel</span>)</span></span>
+</code></pre>
+<h2 id="xgboost-model">XGBoost Model</h2>
+<pre><code class="lang-{r}"><span class="hljs-attr">trn</span> = as.matrix(trn_data[,<span class="hljs-number">1</span>:(length(trn_data)-<span class="hljs-number">1</span>)])
+<span class="hljs-attr">tst</span> = as.matrix(tst_data[,<span class="hljs-number">1</span>:(length(trn_data)-<span class="hljs-number">1</span>)])
+<span class="hljs-attr">y</span> = as.numeric(<span class="hljs-number">1</span> / (trn_data$Recovered+<span class="hljs-number">1</span>))
+
+m1_xgb &lt;-
+  xgboost::xgboost(
+    <span class="hljs-attr">data</span> = trn,
+    <span class="hljs-attr">label</span> = y,
+    <span class="hljs-attr">nrounds</span> = <span class="hljs-number">100</span>,
+    <span class="hljs-attr">objective</span> = <span class="hljs-string">"reg:squarederror"</span>,
+    <span class="hljs-attr">early_stopping_rounds</span> = <span class="hljs-number">3</span>,
+    <span class="hljs-attr">max_depth</span> = <span class="hljs-number">2</span>,
+    <span class="hljs-attr">eta</span> = .<span class="hljs-number">25</span>
+)
+</code></pre>
+<pre><code>[<span class="hljs-name">1</span>]    train-rmse:0.287112 
+Will train until train_rmse hasn<span class="hljs-symbol">'t</span> improved in <span class="hljs-number">3</span> rounds.
+
+[<span class="hljs-name">2</span>]    train-rmse:0.257237 
+[<span class="hljs-name">3</span>]    train-rmse:0.236319 
+[<span class="hljs-name">4</span>]    train-rmse:0.221075 
+[<span class="hljs-name">5</span>]    train-rmse:0.209131 
+[<span class="hljs-name">6</span>]    train-rmse:0.200903 
+[<span class="hljs-name">7</span>]    train-rmse:0.190656 
+[<span class="hljs-name">8</span>]    train-rmse:0.183790 
+[<span class="hljs-name">9</span>]    train-rmse:0.179291 
+[<span class="hljs-name">10</span>]    train-rmse:0.172338 
+[<span class="hljs-name">11</span>]    train-rmse:0.168037 
+[<span class="hljs-name">12</span>]    train-rmse:0.164189 
+[<span class="hljs-name">13</span>]    train-rmse:0.160637 
+[<span class="hljs-name">14</span>]    train-rmse:0.158025 
+[<span class="hljs-name">15</span>]    train-rmse:0.153943 
+[<span class="hljs-name">16</span>]    train-rmse:0.150851 
+[<span class="hljs-name">17</span>]    train-rmse:0.146700 
+[<span class="hljs-name">18</span>]    train-rmse:0.142581 
+[<span class="hljs-name">19</span>]    train-rmse:0.140686 
+[<span class="hljs-name">20</span>]    train-rmse:0.136848 
+[<span class="hljs-name">21</span>]    train-rmse:0.133945 
+[<span class="hljs-name">22</span>]    train-rmse:0.130419 
+[<span class="hljs-name">23</span>]    train-rmse:0.127407 
+[<span class="hljs-name">24</span>]    train-rmse:0.125139 
+[<span class="hljs-name">25</span>]    train-rmse:0.122012 
+[<span class="hljs-name">26</span>]    train-rmse:0.120388 
+[<span class="hljs-name">27</span>]    train-rmse:0.118952 
+[<span class="hljs-name">28</span>]    train-rmse:0.116371 
+[<span class="hljs-name">29</span>]    train-rmse:0.113865 
+[<span class="hljs-name">30</span>]    train-rmse:0.111436 
+[<span class="hljs-name">31</span>]    train-rmse:0.109167 
+[<span class="hljs-name">32</span>]    train-rmse:0.106474 
+[<span class="hljs-name">33</span>]    train-rmse:0.104879 
+[<span class="hljs-name">34</span>]    train-rmse:0.101231 
+[<span class="hljs-name">35</span>]    train-rmse:0.099641 
+[<span class="hljs-name">36</span>]    train-rmse:0.098505 
+[<span class="hljs-name">37</span>]    train-rmse:0.095885 
+[<span class="hljs-name">38</span>]    train-rmse:0.093013 
+[<span class="hljs-name">39</span>]    train-rmse:0.091217 
+[<span class="hljs-name">40</span>]    train-rmse:0.089114 
+[<span class="hljs-name">41</span>]    train-rmse:0.087732 
+[<span class="hljs-name">42</span>]    train-rmse:0.085041 
+[<span class="hljs-name">43</span>]    train-rmse:0.083279 
+[<span class="hljs-name">44</span>]    train-rmse:0.082512 
+[<span class="hljs-name">45</span>]    train-rmse:0.081337 
+[<span class="hljs-name">46</span>]    train-rmse:0.080094 
+[<span class="hljs-name">47</span>]    train-rmse:0.079325 
+[<span class="hljs-name">48</span>]    train-rmse:0.078562 
+[<span class="hljs-name">49</span>]    train-rmse:0.077197 
+[<span class="hljs-name">50</span>]    train-rmse:0.075101 
+[<span class="hljs-name">51</span>]    train-rmse:0.074573 
+[<span class="hljs-name">52</span>]    train-rmse:0.072915 
+[<span class="hljs-name">53</span>]    train-rmse:0.072319 
+[<span class="hljs-name">54</span>]    train-rmse:0.070838 
+[<span class="hljs-name">55</span>]    train-rmse:0.069448 
+[<span class="hljs-name">56</span>]    train-rmse:0.067937 
+[<span class="hljs-name">57</span>]    train-rmse:0.067441 
+[<span class="hljs-name">58</span>]    train-rmse:0.066487 
+[<span class="hljs-name">59</span>]    train-rmse:0.065947 
+[<span class="hljs-name">60</span>]    train-rmse:0.065377 
+[<span class="hljs-name">61</span>]    train-rmse:0.064116 
+[<span class="hljs-name">62</span>]    train-rmse:0.062853 
+[<span class="hljs-name">63</span>]    train-rmse:0.062033 
+[<span class="hljs-name">64</span>]    train-rmse:0.061587 
+[<span class="hljs-name">65</span>]    train-rmse:0.061179 
+[<span class="hljs-name">66</span>]    train-rmse:0.059977 
+[<span class="hljs-name">67</span>]    train-rmse:0.059153 
+[<span class="hljs-name">68</span>]    train-rmse:0.058782 
+[<span class="hljs-name">69</span>]    train-rmse:0.057525 
+[<span class="hljs-name">70</span>]    train-rmse:0.055889 
+[<span class="hljs-name">71</span>]    train-rmse:0.055360 
+[<span class="hljs-name">72</span>]    train-rmse:0.054600 
+[<span class="hljs-name">73</span>]    train-rmse:0.053407 
+[<span class="hljs-name">74</span>]    train-rmse:0.052204 
+[<span class="hljs-name">75</span>]    train-rmse:0.051651 
+[<span class="hljs-name">76</span>]    train-rmse:0.051254 
+[<span class="hljs-name">77</span>]    train-rmse:0.050295 
+[<span class="hljs-name">78</span>]    train-rmse:0.048853 
+[<span class="hljs-name">79</span>]    train-rmse:0.048068 
+[<span class="hljs-name">80</span>]    train-rmse:0.047507 
+[<span class="hljs-name">81</span>]    train-rmse:0.046603 
+[<span class="hljs-name">82</span>]    train-rmse:0.045885 
+[<span class="hljs-name">83</span>]    train-rmse:0.045578 
+[<span class="hljs-name">84</span>]    train-rmse:0.044665 
+[<span class="hljs-name">85</span>]    train-rmse:0.043870 
+[<span class="hljs-name">86</span>]    train-rmse:0.043411 
+[<span class="hljs-name">87</span>]    train-rmse:0.042746 
+[<span class="hljs-name">88</span>]    train-rmse:0.042059 
+[<span class="hljs-name">89</span>]    train-rmse:0.041403 
+[<span class="hljs-name">90</span>]    train-rmse:0.040748 
+[<span class="hljs-name">91</span>]    train-rmse:0.040483 
+[<span class="hljs-name">92</span>]    train-rmse:0.039762 
+[<span class="hljs-name">93</span>]    train-rmse:0.039383 
+[<span class="hljs-name">94</span>]    train-rmse:0.039150 
+[<span class="hljs-name">95</span>]    train-rmse:0.038457 
+[<span class="hljs-name">96</span>]    train-rmse:0.037907 
+[<span class="hljs-name">97</span>]    train-rmse:0.037666 
+[<span class="hljs-name">98</span>]    train-rmse:0.036878 
+[<span class="hljs-name">99</span>]    train-rmse:0.036354 
+[<span class="hljs-name">100</span>]    train-rmse:0.035490 
+</code></pre><pre><code class="lang-{r}">pred = predict(<span class="hljs-name">m1_xgb</span>, tst)
+calc_RMSE(<span class="hljs-name">pred</span>, <span class="hljs-number">1</span>/(<span class="hljs-name">tst_data</span>$Recovered+1))
+</code></pre>
+<p>0.249904967623603</p>
+<pre><code class="lang-{r}"><span class="hljs-title">mat</span> &lt;- xgb.importance (feature_names = colnames(trn),model = m1_xgb)
+<span class="hljs-title">xgb</span>.plot.importance (importance_matrix = mat[1:20])
+</code></pre>
+<h2 id="kernel-regression">Kernel Regression</h2>
+<pre><code class="lang-{r}"><span class="hljs-function"><span class="hljs-title">library</span><span class="hljs-params">(<span class="hljs-string">'kernlab'</span>)</span></span>
+</code></pre>
+<pre><code class="lang-{r}"><span class="hljs-keyword">set</span>.seed(<span class="hljs-number">42</span>)
+model_Control = trainControl(<span class="hljs-function"><span class="hljs-keyword">method</span> = "<span class="hljs-title">cv</span>", <span class="hljs-title">number</span> = 5)
+
+<span class="hljs-title">kernel_regression_model_full</span> = <span class="hljs-title">train</span><span class="hljs-params">(
+  form = 1 / (Recovered+1)</span> ~ .,
+  <span class="hljs-title">data</span> = <span class="hljs-title">trn_data</span>,
+  <span class="hljs-title">trControl</span> = <span class="hljs-title">model_Control</span>,
+  <span class="hljs-title">method</span> = "<span class="hljs-title">gaussprRadial</span>",
+  <span class="hljs-title">tuneGrid</span> = <span class="hljs-title">expand</span>.<span class="hljs-title">grid</span><span class="hljs-params">(sigma = seq(0.01, 0.1, 0.005)</span>)
+)
+
+<span class="hljs-title">kernel_regression_model_full</span></span>
+</code></pre>
+<pre><code>Gaussian Process with Radial Basis Function Kernel 
+
+<span class="hljs-number">125</span> samples
+ <span class="hljs-number">17</span> predictor
+
+No pre-processing
+Resampling: Cross-Validated (<span class="hljs-number">5</span> fold) 
+Summary of sample sizes: <span class="hljs-number">100</span>, <span class="hljs-number">100</span>, <span class="hljs-number">101</span>, <span class="hljs-number">100</span>, <span class="hljs-number">99</span> 
+Resampling results across tuning parameters:
+
+  sigma  RMSE       Rsquared   MAE      
+  <span class="hljs-number">0</span>.<span class="hljs-number">010</span>  <span class="hljs-number">0.2320687</span>  <span class="hljs-number">0.4584832</span>  <span class="hljs-number">0.1931997</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">015</span>  <span class="hljs-number">0.2306338</span>  <span class="hljs-number">0.4630747</span>  <span class="hljs-number">0.1901620</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">020</span>  <span class="hljs-number">0.2301543</span>  <span class="hljs-number">0.4651479</span>  <span class="hljs-number">0.1893383</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">025</span>  <span class="hljs-number">0.2302350</span>  <span class="hljs-number">0.4653745</span>  <span class="hljs-number">0.1895815</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">030</span>  <span class="hljs-number">0.2306714</span>  <span class="hljs-number">0.4643397</span>  <span class="hljs-number">0.1905678</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">035</span>  <span class="hljs-number">0.2313422</span>  <span class="hljs-number">0.4624657</span>  <span class="hljs-number">0.1918602</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">040</span>  <span class="hljs-number">0.2321736</span>  <span class="hljs-number">0.4600269</span>  <span class="hljs-number">0.1933074</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">045</span>  <span class="hljs-number">0.2331194</span>  <span class="hljs-number">0.4571942</span>  <span class="hljs-number">0.1949075</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">050</span>  <span class="hljs-number">0.2341495</span>  <span class="hljs-number">0.4540746</span>  <span class="hljs-number">0.1966059</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">055</span>  <span class="hljs-number">0.2352432</span>  <span class="hljs-number">0.4507377</span>  <span class="hljs-number">0.1982913</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">060</span>  <span class="hljs-number">0.2363852</span>  <span class="hljs-number">0.4472322</span>  <span class="hljs-number">0.1999548</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">065</span>  <span class="hljs-number">0.2375640</span>  <span class="hljs-number">0.4435944</span>  <span class="hljs-number">0.2015909</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">070</span>  <span class="hljs-number">0.2387701</span>  <span class="hljs-number">0.4398538</span>  <span class="hljs-number">0.2031958</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">075</span>  <span class="hljs-number">0.2399957</span>  <span class="hljs-number">0.4360348</span>  <span class="hljs-number">0.2047671</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">080</span>  <span class="hljs-number">0.2412341</span>  <span class="hljs-number">0.4321589</span>  <span class="hljs-number">0.2063676</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">085</span>  <span class="hljs-number">0.2424798</span>  <span class="hljs-number">0.4282445</span>  <span class="hljs-number">0.2079483</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">090</span>  <span class="hljs-number">0.2437279</span>  <span class="hljs-number">0.4243081</span>  <span class="hljs-number">0.2094967</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">095</span>  <span class="hljs-number">0.2449740</span>  <span class="hljs-number">0.4203641</span>  <span class="hljs-number">0.2110112</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">100</span>  <span class="hljs-number">0.2462146</span>  <span class="hljs-number">0.4164248</span>  <span class="hljs-number">0.2124907</span>
+
+RMSE was used to select the optimal model using the smallest value.
+The final value used for the model was sigma = <span class="hljs-number">0</span>.<span class="hljs-number">02</span>.
+</code></pre><pre><code class="lang-{r}"><span class="hljs-keyword">set</span>.seed(<span class="hljs-number">42</span>)
+model_Control = trainControl(<span class="hljs-function"><span class="hljs-keyword">method</span> = "<span class="hljs-title">cv</span>", <span class="hljs-title">number</span> = 5)
+
+<span class="hljs-title">kernel_regression_model_reduced</span> = <span class="hljs-title">train</span><span class="hljs-params">(
+  form = 1 / (Recovered+1)</span> ~ <span class="hljs-title">Animal</span>.<span class="hljs-title">fats</span> + <span class="hljs-title">Sugar</span>...<span class="hljs-title">Sweeteners</span> + <span class="hljs-title">Oilcrops</span> + <span class="hljs-title">Stimulants</span> + <span class="hljs-title">Obesity</span> + <span class="hljs-title">Eggs</span> + <span class="hljs-title">Treenuts</span>,
+  <span class="hljs-title">data</span> = <span class="hljs-title">trn_data</span>,
+  <span class="hljs-title">trControl</span> = <span class="hljs-title">model_Control</span>,
+  <span class="hljs-title">method</span> = "<span class="hljs-title">gaussprRadial</span>",
+  <span class="hljs-title">tuneGrid</span> = <span class="hljs-title">expand</span>.<span class="hljs-title">grid</span><span class="hljs-params">(sigma = seq(0.01, 0.1, 0.005)</span>)
+)
+
+<span class="hljs-title">kernel_regression_model_reduced</span></span>
+</code></pre>
+<pre><code>Gaussian Process with Radial Basis Function Kernel 
+
+<span class="hljs-number">125</span> samples
+  <span class="hljs-number">7</span> predictor
+
+No pre-processing
+Resampling: Cross-Validated (<span class="hljs-number">5</span> fold) 
+Summary of sample sizes: <span class="hljs-number">100</span>, <span class="hljs-number">100</span>, <span class="hljs-number">101</span>, <span class="hljs-number">100</span>, <span class="hljs-number">99</span> 
+Resampling results across tuning parameters:
+
+  sigma  RMSE       Rsquared   MAE      
+  <span class="hljs-number">0</span>.<span class="hljs-number">010</span>  <span class="hljs-number">0.2305560</span>  <span class="hljs-number">0.4668290</span>  <span class="hljs-number">0.1925810</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">015</span>  <span class="hljs-number">0.2292823</span>  <span class="hljs-number">0.4682240</span>  <span class="hljs-number">0.1889323</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">020</span>  <span class="hljs-number">0.2285790</span>  <span class="hljs-number">0.4698643</span>  <span class="hljs-number">0.1868722</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">025</span>  <span class="hljs-number">0.2281608</span>  <span class="hljs-number">0.4710857</span>  <span class="hljs-number">0.1855482</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">030</span>  <span class="hljs-number">0.2279424</span>  <span class="hljs-number">0.4717579</span>  <span class="hljs-number">0.1847221</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">035</span>  <span class="hljs-number">0.2278715</span>  <span class="hljs-number">0.4719363</span>  <span class="hljs-number">0.1842688</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">040</span>  <span class="hljs-number">0.2279078</span>  <span class="hljs-number">0.4717267</span>  <span class="hljs-number">0.1839940</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">045</span>  <span class="hljs-number">0.2280200</span>  <span class="hljs-number">0.4712342</span>  <span class="hljs-number">0.1838823</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">050</span>  <span class="hljs-number">0.2281844</span>  <span class="hljs-number">0.4705463</span>  <span class="hljs-number">0.1838968</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">055</span>  <span class="hljs-number">0.2283834</span>  <span class="hljs-number">0.4697303</span>  <span class="hljs-number">0.1839759</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">060</span>  <span class="hljs-number">0.2286047</span>  <span class="hljs-number">0.4688358</span>  <span class="hljs-number">0.1841403</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">065</span>  <span class="hljs-number">0.2288392</span>  <span class="hljs-number">0.4678976</span>  <span class="hljs-number">0.1843400</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">070</span>  <span class="hljs-number">0.2290810</span>  <span class="hljs-number">0.4669393</span>  <span class="hljs-number">0.1845635</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">075</span>  <span class="hljs-number">0.2293260</span>  <span class="hljs-number">0.4659764</span>  <span class="hljs-number">0.1848854</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">080</span>  <span class="hljs-number">0.2295717</span>  <span class="hljs-number">0.4650185</span>  <span class="hljs-number">0.1852134</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">085</span>  <span class="hljs-number">0.2298165</span>  <span class="hljs-number">0.4640707</span>  <span class="hljs-number">0.1855433</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">090</span>  <span class="hljs-number">0.2300595</span>  <span class="hljs-number">0.4631354</span>  <span class="hljs-number">0.1859222</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">095</span>  <span class="hljs-number">0.2303004</span>  <span class="hljs-number">0.4622131</span>  <span class="hljs-number">0.1863270</span>
+  <span class="hljs-number">0</span>.<span class="hljs-number">100</span>  <span class="hljs-number">0.2305392</span>  <span class="hljs-number">0.4613028</span>  <span class="hljs-number">0.1867641</span>
+
+RMSE was used to select the optimal model using the smallest value.
+The final value used for the model was sigma = <span class="hljs-number">0</span>.<span class="hljs-number">035</span>.
+</code></pre><pre><code class="lang-{r}">pred = predict(<span class="hljs-name">kernel_regression_model_full</span>, tst_data)
+calc_RMSE(<span class="hljs-name">pred</span>, <span class="hljs-number">1</span>/(<span class="hljs-name">tst_data</span>$Recovered+1))
+</code></pre>
+<p>0.252345339280607</p>
+<pre><code class="lang-{r}">pred = predict(<span class="hljs-name">kernel_regression_model_reduced</span>, tst_data)
+calc_RMSE(<span class="hljs-name">pred</span>, <span class="hljs-number">1</span>/(<span class="hljs-name">tst_data</span>$Recovered+1))
+</code></pre>
+<p>0.263082173498589</p>
+<pre><code class="lang-{r}"><span class="hljs-title">kernel_full_model_rmse</span> = <span class="hljs-class"><span class="hljs-keyword">data</span>.frame(<span class="hljs-title">kernel_regression_model_full</span>$<span class="hljs-title">results</span>)</span>
+<span class="hljs-title">kernel_reduce_model_rmse</span> = <span class="hljs-class"><span class="hljs-keyword">data</span>.frame(<span class="hljs-title">kernel_regression_model_reduced</span>$<span class="hljs-title">results</span>)</span>
+
+<span class="hljs-title">head</span>(kernel_full_model_rmse,<span class="hljs-number">3</span>)
+</code></pre>
+<pre><code class="lang-{r}">options(<span class="hljs-name">repr</span>.plot.width=10, repr.plot.height=5)
+
+ggplot(<span class="hljs-name">data</span> = kernel_full_model_rmse, aes(<span class="hljs-name">x</span> = sigma, y = RMSE, color = 'Full Model')) +
+  theme_update(<span class="hljs-name">plot</span>.title = element_text(<span class="hljs-name">hjust</span> = <span class="hljs-number">0.5</span>))+
+  theme_set(<span class="hljs-name">theme_bw</span>())+
+  theme(<span class="hljs-name">text</span> = element_text(<span class="hljs-name">size=14</span>))+
+  labs(<span class="hljs-name">title=</span>'Kernel Regression Model Tuning', x='Bandwidth', y = 'Cross Validated RMSE')+
+  scale_x_continuous(<span class="hljs-name">breaks</span> = seq(<span class="hljs-number">0</span>, <span class="hljs-number">0.2</span>, by = <span class="hljs-number">0.02</span>))+
+
+  geom_line()+
+  geom_point()+
+
+  geom_line(<span class="hljs-name">aes</span>(<span class="hljs-name">x</span> = kernel_reduce_model_rmse$sigma, y = kernel_reduce_model_rmse$RMSE, color = <span class="hljs-string">"Reduced Model"</span>))+
+  geom_point(<span class="hljs-name">aes</span>(<span class="hljs-name">x</span> = kernel_reduce_model_rmse$sigma, y = kernel_reduce_model_rmse$RMSE, color = <span class="hljs-string">"Reduced Model"</span>))
+</code></pre>
+</body></html>
